@@ -8,12 +8,12 @@ import numpy as np
 column = 512
 row = 512
 
-array_1 = np.zeros((column, row), dtype = np.uint8)        # 像素值全为0的灰度图像的数组，大小为512*512
-array_2 = np.full((column, row), 255, dtype = np.uint8)    # 像素值全为255的灰度图像的数组，大小为512*512
-array_3 = np.zeros((column, row), dtype = np.uint16)       # 像素值等于横坐标的灰度图像的数组，大小为512*512
-array_4 = np.random.randint(0, 256, size = (column, row))  # 表示尽可能多色彩的彩色图像的数组，大小为512*512
-array_5 = np.zeros((column, 32 * 9), dtype = np.uint8)     # 竖直条纹灰度图像的数组
-array_3_fixed = np.zeros((column, row), dtype = np.uint8)  # 像素值等于横坐标的灰度图像的数组，大小为512*512
+array_1 = np.zeros((column, row), dtype = np.uint8)           # 像素值全为0的灰度图像的数组，大小为512*512
+array_2 = np.full((column, row), 255, dtype = np.uint8)       # 像素值全为255的灰度图像的数组，大小为512*512
+array_3 = np.zeros((column, row), dtype = np.uint16)          # 像素值等于横坐标的灰度图像的数组，大小为512*512
+array_4 = np.random.randint(0, 256, size = (column, row, 3))  # 表示尽可能多色彩的彩色图像的数组，大小为512*512*3
+array_5 = np.zeros((column, 32 * 9), dtype = np.uint8)        # 竖直条纹灰度图像的数组
+array_3_fixed = np.zeros((column, row), dtype = np.uint8)     # 像素值等于横坐标的灰度图像的数组，大小为512*512
 
 # 创建array_3
 for i in range(column):
