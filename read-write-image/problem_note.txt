@@ -60,3 +60,12 @@ frame.grid()
 在显示文本的时候，每次更新图片的时候，似乎有上一次文本的残留
 
 ttk.Label采取覆盖的方式更新文本，如果原文本比新文本长，那么更新之后会有原文本的残留
+
+解决方案：
+
+************************************* 问题4 *************************************
+file_data = struct.unpack("B", file.read())报错：struct.error: unpack requires a buffer of 1 bytes
+
+解决方案：
+使用struct.unpack的时候，需要指定长度，改成如下形式即可：
+file_data = struct.unpack(f"{file_width * file_height}B", file.read())
