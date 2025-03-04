@@ -53,19 +53,31 @@ frame = ttk.Frame(root, padding = 10)
 frame.grid()
 这段代码之后，但是两个函数放在上述位置之后，并没有起到效果
 
-解决方案，在show_image()函数中的第一行添加：global image_tk, image_label，确保image_tk和image_label为全局变量
-原来的代码中，image_tk和image_label的作用域只是在函数内部，如果不加global的话，无论放在什么位置都没有作用
+解决方案：
+在show_image()函数中的第一行添加：global image_tk，确保image_tk为全局变量
+原来的代码中，image_tk的作用域只是在函数内部，如果不加global的话，子函数无论放在什么位置都没有作用
+因为如果使用Label来显示文本的话，文本会被存储在Label部件中，Label部件绑定到了root，被root全局管理，所以就算在子函数中也可以显示文本
+但是由于image_tk是PhotoImage，不会被存储在Label中，所以子函数结束后就会被回收，导致图片显示不了
 
 ************************************* 问题3 *************************************
-在显示文本的时候，每次更新图片的时候，似乎有上一次文本的残留
-
-ttk.Label采取覆盖的方式更新文本，如果原文本比新文本长，那么更新之后会有原文本的残留
-
-解决方案：
-
-************************************* 问题4 *************************************
 file_data = struct.unpack("B", file.read())报错：struct.error: unpack requires a buffer of 1 bytes
 
 解决方案：
 使用struct.unpack的时候，需要指定长度，改成如下形式即可：
 file_data = struct.unpack(f"{file_width * file_height}B", file.read())
+
+************************************* 问题4 *************************************
+change_image_button = ttk.Button(frame, text = "根据顶部的提示，点击我切换图片")
+change_image_button.bind("<Button-1>", img_backward)  # 左键显示上一张图片
+change_image_button.bind("<Button-3>", img_forward)  # 右键显示下一张图片
+
+将上述代码放在函数里面的时候，按键能够显示，但是不能隐藏
+将其放到主函数中，并在函数中用global将其设置为全局变量，按键可以隐藏
+
+理论上来说，子函数中的变量都是局部变量，所以将上述代码放在子函数中，理论上是不会有按键显示的
+但是由于grid()将按键与tkinter的root绑定了，所以虽然按键的变量消失了，但是这个部件还会在，因为它被tkinter全局管理着，但是不能对按键施加操作
+
+************************************* 问题5 *************************************
+data = struct.pack(f"ii{row * column}B", column, row, *array_new)
+刚开始没有*，导致没有解包数组
+struct.pack需要的是数据，而不是数组，需要用*来解包数组，将其变成一个个元素，不然数组将会被当作是元素
