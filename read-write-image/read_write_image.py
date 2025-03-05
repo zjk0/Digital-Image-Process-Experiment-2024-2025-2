@@ -15,6 +15,8 @@ frame.grid()
 file_num = 0  # 选取的文件的数量
 file_index = 0  # 文件路径元组的索引
 
+image_label = ttk.Label(frame)  # 用于显示图片的Label
+
 ''' 
 读取raw文件 
 '''
@@ -47,12 +49,12 @@ def write_raw (file_name, array):
 显示图片及其相关信息 
 '''
 def show_image (image_path):
-    global image_tk  # 将与图窗相关的变量设置为全局变量，使得它们在图窗的作用域内
+    global image_tk, image_label  # 将与图窗相关的变量设置为全局变量，使得它们在图窗的作用域内
     image = Image.open(image_path)  # 通过图片路径打开图片
     image_tk = ImageTk.PhotoImage(image)  # 将图像转化为tkinter可用的PhotoImage对象
 
     # 显示图像
-    image_label = ttk.Label(frame, image = image_tk)
+    image_label.config(image = image_tk)
     image_label.grid(row = 3, column = 0)
 
     # 显示图像大小
@@ -71,7 +73,7 @@ def show_image (image_path):
 显示文件 
 '''
 def show_file ():
-    global file_path, file, file_num, file_index, raw_image_tk
+    global file_path, file, file_num, file_index, raw_image_tk, image_label
 
     # 获取要显示的文件
     file = file_path[file_index]
@@ -92,8 +94,18 @@ def show_file ():
         raw_array = read_raw(file)  # 获取raw文件的图片的二维数组
         raw_image = Image.fromarray(raw_array)  # 二维数组转换为图片
         raw_image_tk = ImageTk.PhotoImage(raw_image)  # 转换为tkinter能够解析的PhotoImage类型
-        raw_image_label = ttk.Label(frame, image = raw_image_tk)  # 显示raw文件的图片
-        raw_image_label.grid(row = 5, column = 0)
+
+        # 显示raw文件的图片
+        image_label.config(image = raw_image_tk)
+        image_label.grid(row = 3, column = 0)
+
+        # 显示图像大小
+        raw_image_size_label = ttk.Label(frame, text = f"图像大小：{raw_image.size}")
+        raw_image_size_label.grid(row = 4, column = 0)
+
+        # 显示图像类型
+        raw_image_mode_label = ttk.Label(frame, text = "图像类型：raw图像")
+        raw_image_mode_label.grid(row = 5, column = 0)
         write_raw(file, raw_array)
     else:
         show_image(file)
