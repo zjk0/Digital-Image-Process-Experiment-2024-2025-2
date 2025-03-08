@@ -30,7 +30,7 @@ def gray_histogram (image):
     # 绘制直方图
     figure.clear()  # 清除图窗中的图像
     histogram = figure.add_subplot()
-    histogram.bar(all_gray, gray_distribution, width = 0.5)
+    histogram.bar(all_gray, gray_distribution, width = 0.6)
     histogram.set_title("gray histogram")
     histogram.set_xlabel("gray value")
     histogram.set_ylabel("frequence")
@@ -46,24 +46,24 @@ def color_histogram (image):
     color_distribution = np.zeros((3, 256))  # 用于分别统计每个RGB值出现的频率
 
     # 遍历所有RGB值
-    for i in range(256):
-        for j in range(3):
-            color_distribution[j, i] = np.count_nonzero(image_array[:, j] == i) / (image.size[0] * image.size[1])  # 分别获取图像中每个RGB值出现的频率
+    for i in range(3):
+        for j in range(256):
+            color_distribution[i, j] = np.count_nonzero(image_array[:, i] == j) / (image.size[0] * image.size[1])  # 分别获取图像中每个RGB值出现的频率
 
     # 绘制直方图
     figure.clear()  # 清除图窗中的图像
     histogram = figure.add_subplot(1, 3, 1)
-    histogram.bar(all_pixel_value, color_distribution[0, :], width = 0.5)
+    histogram.bar(all_pixel_value, color_distribution[0, :], width = 0.6)
     histogram.set_title("red pixel histogram")
     histogram.set_xlabel("pixel value")
     histogram.set_ylabel("frequence")
     histogram = figure.add_subplot(1, 3, 2)
-    histogram.bar(all_pixel_value, color_distribution[1, :], width = 0.5)
+    histogram.bar(all_pixel_value, color_distribution[1, :], width = 0.6)
     histogram.set_title("green pixel histogram")
     histogram.set_xlabel("pixel value")
     histogram.set_ylabel("frequence")
     histogram = figure.add_subplot(1, 3, 3)
-    histogram.bar(all_pixel_value, color_distribution[2, :], width = 0.5)
+    histogram.bar(all_pixel_value, color_distribution[2, :], width = 0.6)
     histogram.set_title("blue pixel histogram")
     histogram.set_xlabel("pixel value")
     histogram.set_ylabel("frequence")
@@ -104,7 +104,7 @@ quit_button = ttk.Button(frame, text = "quit", command = root.destroy)
 quit_button.grid(row = 6, column = 0)
 
 # 创建图窗
-figure = Figure(figsize = (16, 5), dpi = 100)
+figure = Figure(figsize = (18, 5), dpi = 100)
 
 # 创建嵌入tkinter界面的图窗部件
 canvas = FigureCanvasTkAgg(figure, frame)
