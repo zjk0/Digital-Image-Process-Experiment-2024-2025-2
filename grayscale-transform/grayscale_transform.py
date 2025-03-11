@@ -33,7 +33,7 @@ def show_histogram (image_array, histogram, canvas):
 
     # 绘制直方图
     histogram.clear()  # 清除原图表
-    histogram.bar(all_gray, gray_distribution, width = 0.6)
+    histogram.bar(all_gray, gray_distribution, width = 0.8)
     histogram.set_title("gray histogram")
     histogram.set_xlabel("gray value")
     histogram.set_ylabel("num")
@@ -62,6 +62,10 @@ def file_operation ():
     origin_image_tk = ImageTk.PhotoImage(origin_image)  # 转换为tkinter可解析的PhotoImage类的对象
     origin_image_label.config(image = origin_image_tk)  # 显示图像
 
+    # 转换后的图像和其直方图清空，准备用于显示新选择的图像的转换后的图像和直方图
+    transformed_image_label.config(image = "")
+    histogram_transformed.clear()
+
     # 显示原图像的直方图
     _, _, origin_image_array = get_image_data(origin_image)
     show_histogram(origin_image_array, histogram_origin, canvas_origin)
@@ -88,23 +92,66 @@ class GrayscaleTransform:
     '''
     @brief 灰度图像对数变换
     @param image: PIL的Image类
+    @param log_base: 对数的底数
     '''
-    def log_transform (self, image):
-        pass
+    def log_transform (self, image, log_base):
+        # 获取图像数据
+        _, _, image_array = get_image_data(image)
+
+        # 灰度对数变换
+        coef = 255 / (np.log1p(255) / np.log(log_base))  # 使用对数换底公式计算归一化系数
+        image_array = coef * (np.log1p(image_array) / np.log(log_base))  # 使用对数换底公式进行灰度对数变换
+        image_array = image_array.astype(np.uint8)  # 转换为无符号8位整数
+
+        # 显示对数变换后的图像
+        show_transformed_image(image_array)
+
+        # 绘制对数变换后的图像的直方图
+        show_histogram(image_array, histogram_transformed, canvas_transformed)
 
     '''
     @brief 灰度图像幂次变换
     @param image: PIL的Image类
+    @param pow_num: 幂函数的次数
     '''
-    def pow_transform (self, image):
-        pass
+    def pow_transform (self, image, pow_num):
+        # 获取图像数据
+        _, _, image_array = get_image_data(image)
+
+        # 灰度幂次变换
+        coef = 255 / (255 ** pow_num)  # 计算归一化系数
+        image_array = coef * (np.power(image_array, pow_num))  # 进行灰度幂次变换
+        image_array = image_array.astype(np.uint8)  # 转换为无符号8位整数
+        
+        # 显示幂次变换后的图像
+        show_transformed_image(image_array)
+
+        # 绘制幂次变换后的图像的直方图
+        show_histogram(image_array, histogram_transformed, canvas_transformed)
 
     '''
     @brief 灰度直方图均衡化
     @param image: PIL的Image类
     '''
     def histogram_equalization (self, image):
-        pass
+        # 获取图像数据
+        width, height, image_array = get_image_data(image)
+        pixel_num = width * height  # 计算像素数总数
+        
+        # 计算累积分布函数
+        grayscale_cdf = np.zeros(256)  # 初始化累积分布函数数组
+        for i in range(256):  # 计算每一像素值处的函数值
+            grayscale_cdf[i] = np.count_nonzero(image_array == i) if i == 0 else grayscale_cdf[i - 1] + np.count_nonzero(image_array == i)
+
+        # 直方图均衡化
+        image_array = (255 / pixel_num) * grayscale_cdf[image_array]
+        image_array = image_array.astype(np.uint8)  # 转换为无符号8位整数
+
+        # 显示幂次变换后的图像
+        show_transformed_image(image_array)
+
+        # 绘制幂次变换后的图像的直方图
+        show_histogram(image_array, histogram_transformed, canvas_transformed)
 
 if __name__ == '__main__':
     # 创建灰度变换对象
@@ -123,18 +170,18 @@ if __name__ == '__main__':
     # 创建灰度变换选项按键
     reverse_button = ttk.Button(frame, text = "灰度反转", command = lambda: grayscale_transform.reverse(origin_image))
     reverse_button.grid(row = 1, column = 0)
-    log_button = ttk.Button(frame, text = "对数变换", command = lambda: grayscale_transform.log_transform(origin_image))
-    log_button.grid(row = 1, column = 1)
-    pow_button = ttk.Button(frame, text = "幂次变换", command = lambda: grayscale_transform.pow_transform(origin_image))
-    pow_button.grid(row = 2, column = 0)
     equalization_button = ttk.Button(frame, text = "直方图均衡化", command = lambda: grayscale_transform.histogram_equalization(origin_image))
-    equalization_button.grid(row = 2, column = 1)
-
+    equalization_button.grid(row = 1, column = 1)
+    pow_button = ttk.Button(frame, text = "幂次变换", command = lambda: grayscale_transform.pow_transform(origin_image, 2))
+    pow_button.grid(row = 2, column = 0)
+    log_button = ttk.Button(frame, text = "对数变换", command = lambda: grayscale_transform.log_transform(origin_image, 10))
+    log_button.grid(row = 3, column = 0)
+    
     # 用于显示原始图像和转换后的图像
     origin_image_label = ttk.Label(frame)  # 显示原始图像
-    origin_image_label.grid(row = 3, column = 0)
+    origin_image_label.grid(row = 4, column = 0)
     transformed_image_label = ttk.Label(frame)  # 显示转换后的图像
-    transformed_image_label.grid(row = 5, column = 0)
+    transformed_image_label.grid(row = 6, column = 0)
 
     # 创建图窗
     figure_origin = Figure(figsize = (5, 5), dpi = 100)  # 显示原始图像直方图
@@ -145,21 +192,21 @@ if __name__ == '__main__':
     # 创建嵌入tkinter界面的图窗部件
     canvas_origin = FigureCanvasTkAgg(figure_origin, frame)  # 原始图像直方图
     canvas_origin.draw()  # 确保图窗中的图像可以更新
-    canvas_origin.get_tk_widget().grid(row = 3, column = 1)
+    canvas_origin.get_tk_widget().grid(row = 4, column = 1)
     canvas_transformed = FigureCanvasTkAgg(figure_transformed, frame)  # 转换后的图像的直方图
     canvas_transformed.draw()  # 确保图窗中的图像可以更新
-    canvas_transformed.get_tk_widget().grid(row = 5, column = 1)
+    canvas_transformed.get_tk_widget().grid(row = 6, column = 1)
 
     # 创建图窗工具栏
     toolbar_origin = NavigationToolbar2Tk(canvas_origin, frame, pack_toolbar = False)
     toolbar_origin.update()  # 确保工具栏能够更新图像
-    toolbar_origin.grid(row = 4, column = 1)
+    toolbar_origin.grid(row = 5, column = 1)
     toolbar_transformed = NavigationToolbar2Tk(canvas_transformed, frame, pack_toolbar = False)
     toolbar_transformed.update()  # 确保工具栏能够更新图像
-    toolbar_transformed.grid(row = 6, column = 1)
+    toolbar_transformed.grid(row = 7, column = 1)
 
     # 创建“quit”按键
     quit_button = ttk.Button(frame, text = "quit", command = root.destroy)
-    quit_button.grid(row = 7, column = 0)
+    quit_button.grid(row = 0, column = 1)
 
     root.mainloop()
