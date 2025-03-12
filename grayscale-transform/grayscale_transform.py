@@ -92,15 +92,19 @@ class GrayscaleTransform:
     '''
     @brief 灰度图像对数变换
     @param image: PIL的Image类
-    @param log_base: 对数的底数
     '''
-    def log_transform (self, image, log_base):
+    def log_transform (self, image):
         # 获取图像数据
         _, _, image_array = get_image_data(image)
 
+        # 获取输入数据
+        log_base = float(log_base_entry.get())
+        coef = float(log_coef_entry.get())
+
         # 灰度对数变换
-        coef = 255 / (np.log1p(255) / np.log(log_base))  # 使用对数换底公式计算归一化系数
         image_array = coef * (np.log1p(image_array) / np.log(log_base))  # 使用对数换底公式进行灰度对数变换
+        # image_array = np.clip(image_array, None, 255)  # 将数组的值限制在[0, 255]
+        image_array = 255 / (np.max(image_array)) * image_array  # 将数组的值归一化到[0, 255]
         image_array = image_array.astype(np.uint8)  # 转换为无符号8位整数
 
         # 显示对数变换后的图像
@@ -112,15 +116,19 @@ class GrayscaleTransform:
     '''
     @brief 灰度图像幂次变换
     @param image: PIL的Image类
-    @param pow_num: 幂函数的次数
     '''
-    def pow_transform (self, image, pow_num):
+    def pow_transform (self, image):
         # 获取图像数据
         _, _, image_array = get_image_data(image)
 
+        # 获取输入数据
+        pow_num = float(pow_num_entry.get())
+        coef = float(pow_coef_entry.get())
+
         # 灰度幂次变换
-        coef = 255 / (255 ** pow_num)  # 计算归一化系数
         image_array = coef * (np.power(image_array, pow_num))  # 进行灰度幂次变换
+        # image_array = np.clip(image_array, None, 255)  # 将数组的值限制在[0, 255]
+        image_array = 255 / (np.max(image_array)) * image_array  # 将数组的值归一化到[0, 255]
         image_array = image_array.astype(np.uint8)  # 转换为无符号8位整数
         
         # 显示幂次变换后的图像
@@ -160,8 +168,26 @@ if __name__ == '__main__':
     # 创建基本界面
     root = tk.Tk()
     root.title("数字图像处理实验四：灰度变换")
-    frame = ttk.Frame(root, padding = 10)
+    root.grid_rowconfigure(0, weight = 1)
+    root.grid_columnconfigure(0, weight = 1)
+    canvas = tk.Canvas(root)  # 向root放入一个canvas
+    frame = ttk.Frame(canvas, padding = 10)  # 将frame放入canvas中，便于使用滚动条上下移动
+    frame.bind("<Configure>", lambda func: canvas.configure(scrollregion = canvas.bbox("all")))  # 与<Configure>事件绑定，使canvas能够适应界面大小的变化
     frame.grid()
+
+    # 创建滚动条
+    scrollbar_1 = ttk.Scrollbar(root, orient = "vertical", command = canvas.yview)
+    scrollbar_2 = ttk.Scrollbar(root, orient = "horizontal", command = canvas.xview)
+
+    # canvas与frame、滚动条关联
+    canvas.create_window((0, 0), window = frame, anchor="nw")
+    canvas.configure(yscrollcommand = scrollbar_1.set)
+    canvas.configure(xscrollcommand = scrollbar_2.set)
+
+    # canvas和滚动条设置位置
+    canvas.grid(row = 0, column = 0, sticky = "nsew")
+    scrollbar_1.grid(row = 0, column = 1, sticky = "ns")
+    scrollbar_2.grid(row = 1, column = 0, sticky = "ew")
 
     # 创建“打开文件”按键
     open_file_button = ttk.Button(frame, text = "打开文件", command = file_operation)  # 将按键的回调定位到open_file函数
@@ -172,10 +198,34 @@ if __name__ == '__main__':
     reverse_button.grid(row = 1, column = 0)
     equalization_button = ttk.Button(frame, text = "直方图均衡化", command = lambda: grayscale_transform.histogram_equalization(origin_image))
     equalization_button.grid(row = 1, column = 1)
-    pow_button = ttk.Button(frame, text = "幂次变换", command = lambda: grayscale_transform.pow_transform(origin_image, 2))
+    pow_button = ttk.Button(frame, text = "幂次变换", command = lambda: grayscale_transform.pow_transform(origin_image))
     pow_button.grid(row = 2, column = 0)
-    log_button = ttk.Button(frame, text = "对数变换", command = lambda: grayscale_transform.log_transform(origin_image, 10))
+    log_button = ttk.Button(frame, text = "对数变换", command = lambda: grayscale_transform.log_transform(origin_image))
     log_button.grid(row = 3, column = 0)
+
+    # 创建幂次变换参数输入框
+    pow_param_entry_frame = ttk.Frame(frame)
+    pow_param_entry_frame.grid(row = 2, column = 1)
+    pow_num_entry_tip = ttk.Label(pow_param_entry_frame, text = "请输入幂次变换的幂次：")
+    pow_num_entry_tip.grid(row = 0, column = 0)
+    pow_num_entry = ttk.Entry(pow_param_entry_frame)
+    pow_num_entry.grid(row = 0, column = 1)
+    pow_coef_entry_tip = ttk.Label(pow_param_entry_frame, text = "请输入幂次变换的系数：")
+    pow_coef_entry_tip.grid(row = 1, column = 0)
+    pow_coef_entry = ttk.Entry(pow_param_entry_frame)
+    pow_coef_entry.grid(row = 1, column = 1)
+
+    # 创建对数变换参数输入框
+    log_param_entry_frame = ttk.Frame(frame)
+    log_param_entry_frame.grid(row = 3, column = 1)
+    log_base_entry_tip = ttk.Label(log_param_entry_frame, text = "请输入对数变换的底数：")
+    log_base_entry_tip.grid(row = 0, column = 0)
+    log_base_entry = ttk.Entry(log_param_entry_frame)
+    log_base_entry.grid(row = 0, column = 1)
+    log_coef_entry_tip = ttk.Label(log_param_entry_frame, text = "请输入对数变换的系数：")
+    log_coef_entry_tip.grid(row = 1, column = 0)
+    log_coef_entry = ttk.Entry(log_param_entry_frame)
+    log_coef_entry.grid(row = 1, column = 1)
     
     # 用于显示原始图像和转换后的图像
     origin_image_label = ttk.Label(frame)  # 显示原始图像
