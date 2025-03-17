@@ -1,0 +1,16 @@
+------------------------------- problem 1 -------------------------------
+button_frame = ttk.Frame(canvas, padding = 10)
+canvas.create_window((0, 0), window = button_frame, anchor = "nw")
+没有create_window的时候，print(canvas.bbox("all"))得到None，滚动条没有显示
+有create_window的时候，print(canvas.bbox("all"))得到坐标（canvas内所有控件的边界坐标）
+
+二者存在区别
+前者只是让button_frame叠在了canvas上面
+后者让button_frame真正的嵌入了canvas，使得button_frame可随着canvas动态调整
+没有嵌入导致下面这决代码出问题
+button_frame.bind("<Configure>", lambda event: canvas.configure(scrollregion = canvas.bbox("all")))
+这句代码的意思是，使滚动条能够根据buttom_frame的大小变化而自动适应，这时有两种情况
+第一种是，buttom_frame的大小真的变化了，此时滚动条会自动调整
+第二种是，buttom_frame的大小没有变化，但是界面的大小变化了，此时滚动条也会自动调整
+没有create_window，则canvas.bbox("all")返回None，导致设置scrollregion失败，所以滚动条没有显示
+有了create_window，button_frame嵌入了canvas，canvas.bbox("all")有了返回值，设置scrollregion成功，滚动条成功显示
