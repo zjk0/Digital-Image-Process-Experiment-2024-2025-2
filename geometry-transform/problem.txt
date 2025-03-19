@@ -14,3 +14,59 @@ button_frame.bind("<Configure>", lambda event: canvas.configure(scrollregion = c
 第二种是，buttom_frame的大小没有变化，但是界面的大小变化了，此时滚动条也会自动调整
 没有create_window，则canvas.bbox("all")返回None，导致设置scrollregion失败，所以滚动条没有显示
 有了create_window，button_frame嵌入了canvas，canvas.bbox("all")有了返回值，设置scrollregion成功，滚动条成功显示
+
+------------------------------- problem 2 -------------------------------
+原本的想法是，输入完参数之后，点击确定按键，然后执行相应的几何变换操作，所以按键的command属性需要绑定几何变换函数
+然后发现，几何变换函数都有返回值，不太适合用于command属性
+所以改成了等待按键按下的操作
+
+------------------------------- problem 3 -------------------------------
+def image_translate (image_array, x_length, y_length):
+    # 获取图像数组的行数和列数
+    rows = image_array.shape[0]
+    columns = image_array.shape[1]
+
+    # 平移图像
+    translate_result = np.zeros((rows, columns))
+    for i in range(columns):
+        if x_length > 0:
+            if i + x_length >= columns:
+                break
+            translate_result[:, i + x_length] = image_array[:, i]
+        elif x_length < 0:
+            if i - x_length >= columns:
+                break
+            translate_result[:, i] = image_array[:, i - x_length]
+    temp_array = translate_result
+    for i in range(rows):
+        if y_length > 0:
+            if i + y_length >= rows:
+                break
+            translate_result[i + y_length, :] = temp_array[i, :]
+        elif y_length < 0:
+            if i - y_length >= rows:
+                break
+            translate_result[i, :] = temp_array[i - y_length, :]
+
+    return translate_result
+
+见problem3.png
+
+temp_array = translate_result会让temp_array和translate_result共享数组空间，二者互相关联
+需要使用np.copy，即temp_array = np.copy(translate_result)，使得二者相互独立
+也可以考虑分别初始化两个数组temp_array和translate_result，先对temp_array操作，再根据temp_array对translate_array操作
+
+------------------------------- problem 4 -------------------------------
+在测试图像平移的时候，发现只能进行一次操作。
+发现，自己必须先点一次“图像平移”按键，再输入参数，再点击“确定”按键，才能生效
+如果没有点“图像平移”，直接输入参数，是不行的，这是代码设计上的问题
+
+两种方案：
+第一：
+点击“确定”之后，输入参数部分消失，只有再次点击相关操作的按键，输入参数部分才会再次出现
+
+第二：
+重新设计代码
+
+------------------------------- problem 5 -------------------------------
+点击了几何变换按键，但是没有输入参数并点击“确定”，又打开了一个图像
