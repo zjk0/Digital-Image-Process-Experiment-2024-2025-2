@@ -98,3 +98,43 @@ temp_array = translate_result会让temp_array和translate_result共享数组空�
 但是实际上较好的方式是target(x, y) = src(trans(x, y), trans(x, y))
 前者容易导致目标图像像素空缺，并且不容易插值
 后者保证了目标图像每一个点都会有像素值，并且易于插值
+
+------------------------------- problem 8 -------------------------------
+def image_rotate (self, angle):
+    # 获取原始图像的行数和列数
+    rows = self.origin_image_array.shape[0]
+    columns = self.origin_image_array.shape[1]
+        
+    # 为了防止旋转后图像显示不全，计算新的图像数组的行数和列数
+    rows_new = math.ceil(abs(rows * self.cos(angle)) + abs(columns * self.sin(angle)))
+    columns_new = math.ceil(abs(rows * self.sin(angle)) + abs(columns * self.cos(angle)))
+
+    # 原始中心点
+    center_x = rows / 2
+    center_y = columns / 2
+
+    # 变换后的中心点
+    center_x_new = rows_new / 2
+    center_y_new = columns_new / 2
+
+    rotate_image_array = np.zeros((rows_new, columns_new))
+
+    # 旋转变换
+    for x in range(rows_new):
+        for y in range(columns):
+            x_src = x * self.cos(angle) + y * self.sin(angle) - center_x_new * self.cos(angle) - center_y_new * self.sin(angle) + center_x
+            y_src = -x * self.sin(angle) + y * self.cos(angle) + center_x_new * self.sin(angle) - center_y_new * self.cos(angle) + center_y
+            if (x_src < 0 or x_src > rows - 1) or (y_src < 0 or y_src > columns - 1):  # 不属于原图像的部分
+                rotate_image_array[x, y] = 0
+            else:  # 正常情况
+                x1 = int(x_src)
+                x2 = math.ceil(x_src)
+                y1 = int(y_src)
+                y2 = math.ceil(y_src)
+                rotate_image_array[x, y] = self.interpolation_method.bilinear_interpolation(x1, y1, x2, y2, 
+                                                                                            self.origin_image_array[x1, y1], self.origin_image_array[x1, y2], 
+                                                                                            self.origin_image_array[x2, y1], self.origin_image_array[x2, y2], 
+                                                                                            x_src, y_src)
+                
+    return rotate_image_array
+速度有点慢，没有做到观感上的立即变换完成

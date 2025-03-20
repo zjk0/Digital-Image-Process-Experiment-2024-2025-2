@@ -63,10 +63,17 @@ class Interpolation:
     @param x: 插值的位置
     @return result: 插值计算结果
     '''
-    def linear_interpolation (self, x1, x2, 
-                              value1, value2, 
-                              x):
-        pass
+    def linear_interpolation (self, x1, x2, value1, value2, x):
+        # 特殊情况
+        if x1 == x2:
+            return value1
+        
+        # 线性插值计算
+        coef1 = (x2 - x) / (x2 - x1)
+        coef2 = (x - x1) / (x2 - x1)
+        result = coef1 * value1 + coef2 * value2
+        return result
+
     '''
     @brief 双线性插值
     @param x1: 横轴插值范围的下界
@@ -84,6 +91,15 @@ class Interpolation:
     def bilinear_interpolation (self, x1, y1, x2, y2, 
                                 value11, value12, value21, value22, 
                                 x, y):
+        # 特殊情况
+        if x1 == x2 and y1 == y2:
+            return value11
+        elif x1 == x2 and y1 != y2:
+            return self.linear_interpolation(y1, y2, value11, value12, y)
+        elif x1 != x2 and y1 == y2:
+            return self.linear_interpolation(x1, x2, value11, value21, x)
+
+        # 双线性插值矩阵形式计算
         coef = 1 / ((x2 - x1) * (y2 - y1))
         vector1 = np.array([x2 - x, x - x1])
         matrix = np.array([[value11, value12], [value21, value22]])
@@ -96,8 +112,9 @@ class GeometryTransform:
     @brief 初始化
     @param image_array: 需要进行变换的图像的数组
     '''
-    def __init__ (self, image_array):
+    def __init__ (self, image_array, interpolation):
         self.origin_image_array = image_array  # 原图像数组
+        self.interpolation_method = interpolation  # 插值方法
 
     '''
     @brief 计算正弦函数值
@@ -145,14 +162,28 @@ class GeometryTransform:
         center_x_new = rows_new / 2
         center_y_new = columns_new / 2
 
+        # 预先计算旋转角的正弦值和余弦值
+        sin_angle = self.sin(angle)
+        cos_angle = self.cos(angle)
+
         rotate_image_array = np.zeros((rows_new, columns_new))
-        
+
         # 旋转变换
-        for x in range(rows):
-            for y in range(columns):
-                x_new = int(x * self.cos(angle) - y * self.sin(angle) + center_x_new - center_x * self.cos(angle) + center_y * self.sin(angle))
-                y_new = int(x * self.sin(angle) + y * self.cos(angle) + center_y_new - center_x * self.sin(angle) - center_y * self.cos(angle))
-                rotate_image_array[x_new, y_new] = self.origin_image_array[x, y]
+        for x in range(rows_new):
+            for y in range(columns_new):
+                x_src = x * cos_angle + y * sin_angle - center_x_new * cos_angle - center_y_new * sin_angle + center_x
+                y_src = -x * sin_angle + y * cos_angle + center_x_new * sin_angle - center_y_new * cos_angle + center_y
+                if x_src < 0 or x_src > rows - 1 or y_src < 0 or y_src > columns - 1:  # 不属于原图像的部分
+                    rotate_image_array[x, y] = 0
+                else:  # 正常情况
+                    x1 = int(x_src)
+                    x2 = math.ceil(x_src)
+                    y1 = int(y_src)
+                    y2 = math.ceil(y_src)
+                    rotate_image_array[x, y] = self.interpolation_method.bilinear_interpolation(x1, y1, x2, y2, 
+                                                                                                self.origin_image_array[x1, y1], self.origin_image_array[x1, y2], 
+                                                                                                self.origin_image_array[x2, y1], self.origin_image_array[x2, y2], 
+                                                                                                x_src, y_src)
                 
         return rotate_image_array
 
@@ -163,7 +194,7 @@ class GeometryTransform:
     @return translate_image_array: 平移后的图像数组
     '''
     def image_translate (self, x_length, y_length):
-        # 获取图像数组的行数和列数
+        # 获取原始图像数组的行数和列数
         rows = self.origin_image_array.shape[0]
         columns = self.origin_image_array.shape[1]
 
@@ -198,12 +229,41 @@ class GeometryTransform:
         rows = self.origin_image_array.shape[0]
         columns = self.origin_image_array.shape[1]
 
-        row_index = zoom_in_coef * np.arange(rows)
-        column_index = zoom_in_coef * np.arange(columns)
+        # 计算放大后图像的行数和列数
+        rows_new = math.ceil(rows * zoom_in_coef)
+        columns_new = math.ceil(columns * zoom_in_coef)
 
-        zoom_in_image_array = np.zeros((rows * zoom_in_coef, columns * zoom_in_coef))
-        zoom_in_image_array[row_index[:, np.newaxis], column_index] = self.origin_image_array
-        # temp_array = np.zeros((rows * zoom_in_coef, columns * zoom_in_coef))
+        zoom_in_image_array = np.zeros((rows_new, columns_new))
+        temp_array = np.zeros((rows_new, columns))
+
+        # 纵向放大
+        for i in range(rows_new):
+            x = i / zoom_in_coef
+
+            # 特殊情况
+            if x > rows - 1:
+                temp_array[i, :] = temp_array[i - 1, :]
+                continue
+
+            # 线性插值
+            x1 = int(x)
+            x2 = math.ceil(x)
+            temp_array[i, :] = self.interpolation_method.linear_interpolation(x1, x2, self.origin_image_array[x1, :], self.origin_image_array[x2, :], x)
+
+        # 横向放大
+        for i in range(columns_new):
+            x = i / zoom_in_coef
+
+            # 特殊情况
+            if x > columns - 1:
+                zoom_in_image_array[:, i] = zoom_in_image_array[:, i - 1]
+                continue
+            
+            # 线性插值
+            x1 = int(x)
+            x2 = math.ceil(x)
+            zoom_in_image_array[:, i] = self.interpolation_method.linear_interpolation(x1, x2, temp_array[:, x1], temp_array[:, x2], x)
+
         return zoom_in_image_array
 
     '''
@@ -212,24 +272,37 @@ class GeometryTransform:
     @return zoom_out_image_array: 缩小后的图像数组
     '''
     def image_zoom_out (self, zoom_out_coef):
-        # 获取原图像的函数和列数
+        # 获取原始图像的函数和列数
         rows = self.origin_image_array.shape[0]
         columns = self.origin_image_array.shape[1]
+
+        # rows_new = math.ceil(rows / zoom_out_coef)
+        # columns_new = math.ceil(columns / zoom_out_coef)
 
         zoom_out_image_array = np.zeros((rows, columns))
         temp_array = np.zeros((rows, columns))
 
-        # 纵轴方向上的缩小
+        # 纵向缩小
         for i in range(rows):
             if i * zoom_out_coef >= rows:
                 break
-            temp_array[i, :] = self.origin_image_array[i * zoom_out_coef, :]
+            
+            # 线性插值
+            x = i * zoom_out_coef
+            x1 = int(x)
+            x2 = math.ceil(x)
+            temp_array[i, :] = self.interpolation_method.linear_interpolation(x1, x2, self.origin_image_array[x1, :], self.origin_image_array[x2, :], x)
         
-        # 横轴方向上的缩小
+        # 横向缩小
         for i in range(columns):
             if i * zoom_out_coef >= columns:
                 break
-            zoom_out_image_array[:, i] = temp_array[:, i * zoom_out_coef]
+            
+            # 线性插值
+            x = i * zoom_out_coef
+            x1 = int(x)
+            x2 = math.ceil(x)
+            zoom_out_image_array[:, i] = self.interpolation_method.linear_interpolation(x1, x2, temp_array[:, x1], temp_array[:, x2], x)
 
         return zoom_out_image_array
 
@@ -352,7 +425,7 @@ def click_zoom_in_button ():
     '''
     def click_certain_button ():
         nonlocal zoom_in_coef
-        zoom_in_coef = int(entry_area.get())  # 获取放大倍数
+        zoom_in_coef = float(entry_area.get())  # 获取放大倍数
         bool_var.set(True)
         popup.destroy()
 
@@ -391,7 +464,7 @@ def click_zoom_out_button ():
     '''
     def click_certain_button ():
         nonlocal zoom_out_coef
-        zoom_out_coef = int(entry_area.get())  # 获取缩小倍数
+        zoom_out_coef = float(entry_area.get())  # 获取缩小倍数
         bool_var.set(True)
         popup.destroy()
 
@@ -438,7 +511,8 @@ def file_operation ():
         image_array = get_image_array(image)
 
     # 创建GeometryTransform类对象
-    geometry_transform = GeometryTransform(image_array)
+    interpolation = Interpolation()
+    geometry_transform = GeometryTransform(image_array, interpolation)
 
     # 转换为tkinter能解析的PhotoImage对象   
     origin_image_tk = ImageTk.PhotoImage(image)
