@@ -276,17 +276,14 @@ class GeometryTransform:
         rows = self.origin_image_array.shape[0]
         columns = self.origin_image_array.shape[1]
 
-        # rows_new = math.ceil(rows / zoom_out_coef)
-        # columns_new = math.ceil(columns / zoom_out_coef)
+        rows_new = math.ceil(rows / zoom_out_coef)
+        columns_new = math.ceil(columns / zoom_out_coef)
 
-        zoom_out_image_array = np.zeros((rows, columns))
-        temp_array = np.zeros((rows, columns))
+        zoom_out_image_array = np.zeros((rows_new, columns_new))
+        temp_array = np.zeros((rows_new, columns))
 
         # 纵向缩小
-        for i in range(rows):
-            if i * zoom_out_coef >= rows:
-                break
-            
+        for i in range(rows_new):
             # 线性插值
             x = i * zoom_out_coef
             x1 = int(x)
@@ -294,10 +291,7 @@ class GeometryTransform:
             temp_array[i, :] = self.interpolation_method.linear_interpolation(x1, x2, self.origin_image_array[x1, :], self.origin_image_array[x2, :], x)
         
         # 横向缩小
-        for i in range(columns):
-            if i * zoom_out_coef >= columns:
-                break
-            
+        for i in range(columns_new):    
             # 线性插值
             x = i * zoom_out_coef
             x1 = int(x)
