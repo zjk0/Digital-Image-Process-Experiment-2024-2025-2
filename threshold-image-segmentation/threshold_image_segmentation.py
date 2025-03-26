@@ -228,14 +228,11 @@ def threshold_color_segmentation ():
                      ((hsv_image_array[:, :, 1] >= 100) & (hsv_image_array[:, :, 1] <= 255)) & \
                      ((hsv_image_array[:, :, 2] >= 100) & (hsv_image_array[:, :, 2] <= 255))
         
-    # print(np.where(bool_index == True))
     hsv_image_array[:, :, 2][~bool_index] = 0
-    # print(hsv_image_array)
 
     hsv_image = Image.fromarray(hsv_image_array, mode = "HSV")
     rgb_image = HSV_to_RGB(hsv_image)
     _, _, rgb_image_array = get_image_data(rgb_image)
-    # print(rgb_image_array)
     show_seg_image(rgb_image_array)
     seg_image_tip.config(text = "分割后的图像")
 
