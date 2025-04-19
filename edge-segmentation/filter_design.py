@@ -249,7 +249,7 @@ class ImgFilter:
         grad_y = self.convolution_2d(sobel_kernel_y)
         sobel_result = (abs(grad_x) + abs(grad_y)) / np.max(abs(grad_x) + abs(grad_y)) * 255  # 使用相加而不是平方和开根号，从而减少运算
         sobel_result = np.uint8(sobel_result)
-        return grad_x, grad_y, sobel_result
+        return sobel_result
 
     '''
     @brief 获取Laplace核函数
