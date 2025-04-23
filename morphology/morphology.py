@@ -170,29 +170,42 @@ def connected_analysis (image_array):
                         array_with_label[i - 1, j + 1, 1] = label_value if values[3] == 255 else (-1)
                         label_value += 1
                     else:  # 有的前景点有标签
-                        min_label = np.min(labels[labels != -1])
-                        
-                        array_with_label[i, j, 1] = min_label
-                        array_with_label[i, j - 1, 1] = min_label if labels[0] == -1 else labels[0]
-                        array_with_label[i - 1, j - 1, 1] = min_label if labels[1] == -1 else labels[1]
-                        array_with_label[i - 1, j, 1] = min_label if labels[2] == -1 else labels[2]
-                        array_with_label[i - 1, j + 1, 1] = min_label if labels[3] == -1 else labels[3]
-
                         labels_1 = labels[labels != -1]
+                        for k in range(labels_1.shape[0]):
+                            # 寻找最小等价标签
+                            while equ_label[labels_1[k]] != labels_1[k]:
+                                labels_1[k] = equ_label[labels_1[k]]
+
+                        min_label = np.min(labels_1)
+                        
+                        # 打标签
+                        array_with_label[i, j, 1] = min_label
+                        array_with_label[i, j - 1, 1] = min_label if (labels[0] == -1 and values[0] == 255) else labels[0]
+                        array_with_label[i - 1, j - 1, 1] = min_label if (labels[1] == -1 and values[1] == 255) else labels[1]
+                        array_with_label[i - 1, j, 1] = min_label if (labels[2] == -1 and values[2] == 255) else labels[2]
+                        array_with_label[i - 1, j + 1, 1] = min_label if (labels[3] == -1 and values[3] == 255) else labels[3]
+
+                        # 修改等价标签
                         equ_label[labels_1] = min_label
     
+    # 第二次遍历
     for i in range(1, rows - 1):
         for j in range(1, columns - 1):
             if array_with_label[i, j, 0] == 255:
+                # 寻找最小等价标签
                 while equ_label[array_with_label[i, j, 1]] != array_with_label[i, j, 1]:
                     array_with_label[i, j, 1] = equ_label[array_with_label[i, j, 1]]
 
-    for i in range(label_value):
-        array_with_label[array_with_label[:, :, 1] == i, 0] = int((i + 1) / label_value * 255)
+    # 彩色标注
+    temp_array = np.zeros((rows, columns, 3), dtype = np.int32)
+    rgb_array = np.random.randint(0, 256, (np.max(array_with_label[:, :, 1]) + 1, 3))
+    for i in range(np.max(array_with_label[:, :, 1]) + 1):
+        temp_array[array_with_label[:, :, 1] == i] = rgb_array[i]
 
-    result = array_with_label[1 : rows - 1, 1 : columns - 1, 0]
+    result = temp_array[1 : rows - 1, 1 : columns - 1]
+
     show_transform_image(result)
-    transform_image_tip.config(text = f"连通域检测，有{label_value}个")
+    transform_image_tip.config(text = f"8-领域连通域检测，有{label_value}个")
 
 def image_morphology (method):
     global morphology_method, dilation_se_size, erosion_se_size, image_array
