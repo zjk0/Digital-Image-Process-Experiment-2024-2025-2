@@ -309,7 +309,7 @@ if __name__ == '__main__':
 
     # 创建基本界面
     root = tk.Tk()
-    root.title("数字图像处理实验八：基于边缘的图像分割")  # 设置界面标题
+    root.title("数字图像处理实验九：形态学处理")  # 设置界面标题
     root.grid()
     root.grid_columnconfigure(0, weight = 1)  # root的第一列会适应界面大小的改变
     root.grid_rowconfigure(0, weight = 1)  # root的第一行会适应界面大小的改变
